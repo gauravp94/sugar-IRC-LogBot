@@ -68,10 +68,18 @@ class LogBot(irc.IRCClient):
     nickname = "sugarLog"
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
-        #FIXME : There will be problem in the making of the html file if it is restarted in the same day
-        #        because the header and footer are added each time to the file if opened/ appended
-        self.logger = MessageLogger(open(self.factory.filename, "a"))
-        self.logger.log(html_header,0)
+        if os.path.isfile(self.factory.filename):
+                fo = open(self.factory.filename , "r+")
+                contents = fo.read()
+                seek_position = contents.find(html_footer)
+                fo.seek(seek_position-1,0)
+                print seek_position
+                self.logger = MessageLogger(fo)
+                #if the file is already made then just go to that position just before the start of html_footer
+
+        else:
+                self.logger = MessageLogger(open(self.factory.filename, "w"))
+                self.logger.log(html_header,0)
         self.logger.log("<strong>[connected at %s]</strong>" % time.asctime(time.localtime(time.time())),1)
     
     def connectionLost(self, reason):
@@ -162,7 +170,7 @@ if __name__ == '__main__':
     log.startLogging(sys.stdout)
     if len(sys.argv)==1:
             # create factory protocol and application
-            f = LogBotFactory("sugar", filename)
+            f = LogBotFactory("meeting-test", filename)
             # connect factory to this host and port
             reactor.connectTCP("irc.freenode.net", 6667, f)
             # run bot
