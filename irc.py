@@ -66,13 +66,11 @@ class LogBot(irc.IRCClient):
     """A logging IRC bot."""
     
     nickname = "sugarLog"
-    
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
-        if os.path.isfile(self.factory.filename):
-                self.logger = MessageLogger(open(self.factory.filename, "a"))
-        else:
-                self.logger = MessageLogger(open(self.factory.filename, "w"))
+        #FIXME : There will be problem in the making of the html file if it is restarted in the same day
+        #        because the header and footer are added each time to the file if opened/ appended
+        self.logger = MessageLogger(open(self.factory.filename, "a"))
         self.logger.log(html_header,0)
         self.logger.log("<strong>[connected at %s]</strong>" % time.asctime(time.localtime(time.time())),1)
     
