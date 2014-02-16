@@ -20,6 +20,28 @@ import time
 import sys
 import os
 
+today_date =  time.strftime("%d-%m-%Y")
+html_header = '''<!DOCTYPE html>
+                <html lang='en'>
+                <head>
+                        <title>
+                        Sugar Log of '''+today_date+'''
+                        </title>
+                        <link rel='stylesheet' type='text/css' href='css/bootstrap.min.css' media='screen' />
+                </head> 
+                <body>
+                <div class='container'>
+                <h2>Log of the <code>#sugar</code> IRC Channel</h2><br/>
+                <h3>All the times shown here presently are in Indian Standard Time(IST) +0530Hrs<h3/>
+                <h3>Date : '''+today_date+''' </h3><br/><br/>
+                '''
+html_footer = '''</div>
+               <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js'></script>
+               <script src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js'>
+               </script>
+               </body>
+               </html>'''
+
 class MessageLogger:
     """
     An independent logger class (because separation of application
@@ -28,10 +50,12 @@ class MessageLogger:
     def __init__(self, file):
         self.file = file
     
-    def log(self, message):
+    def log(self, message,flag):
         """Write a message to the file."""
         timestamp = time.strftime("[%H:%M:%S]", time.localtime(time.time()))
-        self.file.write('%s %s\n' % (timestamp, message))
+        if flag==1:
+                self.file.write('<kbd>%s</kbd> ' % (timestamp))
+        self.file.write('%s<br/>\n' % (message))
         self.file.flush()
     
     def close(self):
@@ -49,12 +73,13 @@ class LogBot(irc.IRCClient):
                 self.logger = MessageLogger(open(self.factory.filename, "a"))
         else:
                 self.logger = MessageLogger(open(self.factory.filename, "w"))
-        self.logger.log("[connected at %s]" %time.asctime(time.localtime(time.time())))
+        self.logger.log(html_header,0)
+        self.logger.log("<strong>[connected at %s]</strong>" % time.asctime(time.localtime(time.time())),1)
     
     def connectionLost(self, reason):
         irc.IRCClient.connectionLost(self, reason)
-        self.logger.log("[disconnected at %s]" % 
-                        time.asctime(time.localtime(time.time())))
+        self.logger.log("<strong>[disconnected at %s]</strong>" % time.asctime(time.localtime(time.time())),1)
+        self.logger.log(html_footer,0)
         self.logger.close()
     
     # callbacks for events
@@ -64,12 +89,12 @@ class LogBot(irc.IRCClient):
     
     def joined(self, channel):
         """This will get called when the bot joins the channel."""
-        self.logger.log("[I have joined %s]" % channel)
+        self.logger.log("<strong>[I have joined %s]</strong>" % channel,1)
     
     def privmsg(self, user, channel, msg):
         """This will get called when the bot receives a message."""
         user = user.split('!', 1)[0]
-        self.logger.log("<%s> %s" % (user, msg))
+        self.logger.log("<code>&lt;%s&gt;</code> %s" % (user, msg),1)
         # Check to see if they're sending me a private message
         if channel == self.nickname:
             msg = "Private Chat doesnt interest me!"
@@ -79,19 +104,19 @@ class LogBot(irc.IRCClient):
         if msg.startswith(self.nickname + ":"):
             msg = "%s: Hello, I am an automated bot made to keep the logs of the sugar IRC Channel" % user
             self.msg(channel, msg)
-            self.logger.log("<%s> %s" % (self.nickname, msg))
+            self.logger.log("<code>&lt;%s&gt;</code> %s" % (self.nickname, msg),1)
     
     def action(self, user, channel, msg):
         """This will get called when the bot sees someone do an action."""
         user = user.split('!', 1)[0]
-        self.logger.log("* %s %s" % (user, msg))
+        self.logger.log("<em>* %s %s</em>" % (user, msg),1)
     
     # irc callbacks
     def irc_NICK(self, prefix, params):
         """Called when an IRC user changes their nickname."""
         old_nick = prefix.split('!')[0]
         new_nick = params[0]
-        self.logger.log("%s is now known as %s" % (old_nick, new_nick))
+        self.logger.log("<em>%s is now known as %s</em>" % (old_nick, new_nick),1)
     
     # For fun, override the method that determines how a nickname is changed on
     # collisions. The default method appends an underscore.
@@ -137,9 +162,12 @@ if __name__ == '__main__':
     filename = filename_prefix + filename_middle + filename_end
     # initialize logging
     log.startLogging(sys.stdout)
-    # create factory protocol and application
-    f = LogBotFactory("sugar", filename)
-    # connect factory to this host and port
-    reactor.connectTCP("irc.freenode.net", 6667, f)
-    # run bot
-    reactor.run()
+    if len(sys.argv)==1:
+            # create factory protocol and application
+            f = LogBotFactory("sugar", filename)
+            # connect factory to this host and port
+            reactor.connectTCP("irc.freenode.net", 6667, f)
+            # run bot
+            reactor.run()
+    else:
+            print "Please run the program in a correct way. $->python irc.py"
