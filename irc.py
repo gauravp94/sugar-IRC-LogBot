@@ -72,15 +72,13 @@ class LogBot(irc.IRCClient):
                 fo = open(self.factory.filename , "r+")
                 contents = fo.read()
                 seek_position = contents.find(html_footer)
-                fo.seek(seek_position-1,0)
-                print seek_position
+                fo.seek(seek_position-1)
                 self.logger = MessageLogger(fo)
-                #if the file is already made then just go to that position just before the start of html_footer
-
         else:
+                self.append_flag=0
                 self.logger = MessageLogger(open(self.factory.filename, "w"))
                 self.logger.log(html_header,0)
-        self.logger.log("<strong>[connected at %s]</strong>" % time.asctime(time.localtime(time.time())),1)
+                self.logger.log("<strong>[connected at %s]</strong>" % time.asctime(time.localtime(time.time())),1)
     
     def connectionLost(self, reason):
         irc.IRCClient.connectionLost(self, reason)
@@ -159,13 +157,12 @@ class LogBotFactory(protocol.ClientFactory):
         print "Connection failed:", reason
         reactor.stop()
 
+def file_name_gen():
+        return "log"+time.strftime("%d_%m_%Y")+".html"
 
 if __name__ == '__main__':
     # Generating the name of the file
-    filename_prefix = "log"
-    filename_middle = time.strftime("%d_%m_%Y")
-    filename_end = ".html"
-    filename = filename_prefix + filename_middle + filename_end
+    filename = file_name_gen()
     # initialize logging
     log.startLogging(sys.stdout)
     if len(sys.argv)==1:
