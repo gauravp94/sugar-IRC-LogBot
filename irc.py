@@ -19,6 +19,8 @@ from twisted.python import log
 import time
 import sys
 import os
+from subprocess import call, Popen
+import signal
 
 today_date =  time.strftime("%d-%m-%Y")
 html_header = '''<!DOCTYPE html>
@@ -93,12 +95,24 @@ class LogBot(irc.IRCClient):
     
     def joined(self, channel):
         """This will get called when the bot joins the channel."""
-        self.logger.log("<strong>[I have joined %s]</strong>" % channel,1)
+        if self.factory.filename.find(file_name_gen())!=-1:
+                self.logger.log("<strong>[I have joined %s]</strong>" % channel,1)
+        else:
+                global repeat_run
+                repeat_run = 1
+                reactor.stop()
+    
     
     def privmsg(self, user, channel, msg):
         """This will get called when the bot receives a message."""
         user = user.split('!', 1)[0]
-        self.logger.log("<code>&lt;%s&gt;</code> %s" % (user, msg),1)
+        if self.factory.filename.find(file_name_gen())!=-1:
+                self.logger.log("<code>&lt;%s&gt;</code> %s" % (user, msg),1)
+        else:
+                global repeat_run
+                repeat_run = 1
+                reactor.stop()
+    
         # Check to see if they're sending me a private message
         if channel == self.nickname:
             msg = "Private Chat doesnt interest me!"
@@ -108,19 +122,36 @@ class LogBot(irc.IRCClient):
         if msg.startswith(self.nickname + ":"):
             msg = "%s: Hello, I am an automated bot made to keep the logs of the sugar IRC Channel" % user
             self.msg(channel, msg)
-            self.logger.log("<code>&lt;%s&gt;</code> %s" % (self.nickname, msg),1)
+            if self.factory.filename.find(file_name_gen())!=-1:
+                self.logger.log("<code>&lt;%s&gt;</code> %s" % (self.nickname, msg),1)
+            else:
+                #global repeat_run
+                repeat_run = 1
+                reactor.stop()
+    
     
     def action(self, user, channel, msg):
         """This will get called when the bot sees someone do an action."""
         user = user.split('!', 1)[0]
-        self.logger.log("<em>* %s %s</em>" % (user, msg),1)
+        if self.factory.filename.find(file_name_gen())!=-1:
+                self.logger.log("<em>* %s %s</em>" % (user, msg),1)
+        else:
+                global repeat_run
+                repeat_run = 1
+                reactor.stop()
+    
     
     # irc callbacks
     def irc_NICK(self, prefix, params):
         """Called when an IRC user changes their nickname."""
         old_nick = prefix.split('!')[0]
         new_nick = params[0]
-        self.logger.log("<em>%s is now known as %s</em>" % (old_nick, new_nick),1)
+        if self.factory.filename.find(file_name_gen())!=-1:
+                self.logger.log("<em>%s is now known as %s</em>" % (old_nick, new_nick),1)
+        else:
+                global repeat_run
+                repeat_run = 1
+                reactor.stop()
     
     # For fun, override the method that determines how a nickname is changed on
     # collisions. The default method appends an underscore.
@@ -160,7 +191,9 @@ class LogBotFactory(protocol.ClientFactory):
 def file_name_gen():
         return "log"+time.strftime("%d_%m_%Y")+".html"
 
-if __name__ == '__main__':
+def main():
+    global repeat_run
+    repeat_run=0
     # Generating the name of the file
     filename = file_name_gen()
     # initialize logging
@@ -174,3 +207,8 @@ if __name__ == '__main__':
             reactor.run()
     else:
             print "Please run the program in a correct way. $->python irc.py"
+    if repeat_run==1:
+        call(['python', 'irc.py'])
+
+main()
+
