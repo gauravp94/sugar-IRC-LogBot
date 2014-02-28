@@ -205,9 +205,15 @@ def main():
             reactor.connectTCP("irc.freenode.net", 6667, f)
             # run bot
             reactor.run()
+            ''' this part is executed when there is some 
+                unexpected problem in the bot leading to the 
+                closing of the connection
+            '''
+            call(['python', 'irc.py'])
     else:
             print "Please run the program in a correct way. $->python irc.py"
     if repeat_run==1:
+        # this part is executed when there is a change in date    
         call(['python', 'irc.py'])
 
 main()
